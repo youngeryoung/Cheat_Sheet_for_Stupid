@@ -81,45 +81,7 @@ CSfS 采用了一套极其激进的 SSD1306 驱动方案，解决了 I2C 协议�
 
 ---
 
-## 5. 快速上手 (Quick Start)
-
-### 5.1 初始化
-在 `main.c` 的 `User_Init()` 中，CSfS 会自动接管硬件：
-```c
-void User_Init(void) {
-    // 系统级启动：RGB、按键、OLED
-    // 信号链启动：ADC DMA、输入捕获、PWM 发生器
-    // 用户只需关注应用逻辑
-    Wave_Proc_Init(&WaveCfg); // 初始化示波器算法
-}
-```
-
-### 5.2 极简 API 示例
-**场景：输出 1kHz PWM，测量外部信号，并在 OLED 显示。**
-
-```c
-void User_Loop(void) {
-    // 1. 设置 PA2 输出 1kHz, 50% 占空比方波
-    PWM_Set_Freq_Duty(SIGNAL_TIM, SIGNAL_CH, 1000.0f, 50.0f);
-
-    // 2. 获取硬件测频结果
-    Signal_Info_t Info;
-    IC_Get_Info(&Info);
-
-    // 3. 屏幕显示 (非阻塞)
-    if (ModeNeedRefresh) {
-        OLED_NewFrame();
-        // 即使打印浮点数也不需要链接庞大的标准库
-        OLED_PrintString(0, 0, "Freq Check:", OLED_COLOR_NORMAL);
-        OLED_PrintInt(0, 16, Info.Frequency, OLED_COLOR_NORMAL);
-        OLED_ShowFrame(); // DMA 后台发送
-    }
-}
-```
-
----
-
-## 6. 结语
+## 5. 结语
 
 > "The shadow-bird mends broken wings of hardware."
 
