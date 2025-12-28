@@ -233,7 +233,7 @@ CSfS 采用了一套极其激进的 SSD1306 驱动方案，解决了 I2C 协议�
     *   `void UART_Init(void)`: 启动空闲中断 (Idle-Line) 接收。
     *   `void UART1_Send(fmt, ...)` / `void UART6_Send(fmt, ...)`: 变参 Printf 风格发送。
     *   `uint8_t UART1_Get_Packet(char *out_buf)`: 查询并获取接收缓冲区数据。
-    *   `uint8_t CMD_Parse(str, cmd, val)`: 辅助解析 "CMD:123" 格式指令。
+    *   `uint8_t CMD_Parse(str, split_char, cmd, val)`: 辅助解析 "CMD:123" 格式指令。
 *   **系统集成**:
     *   `printf` 已重定向至 UART1。
 
