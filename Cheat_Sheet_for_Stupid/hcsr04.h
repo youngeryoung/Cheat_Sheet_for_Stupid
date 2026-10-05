@@ -39,6 +39,10 @@ extern TIM_HandleTypeDef htim1;
 //                     驱动接口定义区 (API)
 // =============================================================
 
+// HCSR04_Get_Result() 的特殊返回值 (单位同 0.1mm)
+#define HCSR04_MEASURING     0U        /* 测量进行中，本次没有新结果 */
+#define HCSR04_OUT_OF_RANGE  45000U    /* 无回波 / 超量程 */
+
 /**
  * @brief 初始化 HC-SR04 传感器相关硬件
  */
@@ -54,7 +58,7 @@ void HCSR04_Start(void);
 
  /**
  * @brief  获取非阻塞测量结果
- * @return 距离值 (0.1mm)，0 表示测量中，45000 表示超出量程
+ * @return 距离值 (0.1mm)，HCSR04_MEASURING=测量中，HCSR04_OUT_OF_RANGE=超量程
  * @note   读取成功后会自动清除完成标志，需再次调用 Start 才能开始新测量
  */
 uint32_t HCSR04_Get_Result(void);

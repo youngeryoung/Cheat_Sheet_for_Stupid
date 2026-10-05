@@ -55,11 +55,6 @@
 void Key_Init(void);
 
 /**
- * @brief  清空所有未处理的按键按下事件
- */
-void Key_Clear_Event(void);
-
-/**
  * @brief  扫描一次按键状态 (中断调用)
  * @note   请在 main.c 的 HAL_TIM_PeriodElapsedCallback 中调用此函数
  */

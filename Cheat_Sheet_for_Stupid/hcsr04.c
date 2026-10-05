@@ -25,9 +25,11 @@ void HCSR04_Init(void)
     // 1. 初始化 Trig 引脚为低电平
     HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_RESET);
     
-    // 2. 开启 DWT 计数器 (用于高精度阻塞测量)
+    // 2. 使能 DWT 计数器 (用于 TRIG 脉冲与阻塞式测距计时)
+    //    这里只使能、不清零 CYCCNT：它是一个可能被其他驱动共用的时基，
+    //    清零会让别人已经取好的快照失效(无符号减法无法自愈这种"倒退")。
+    //    重复使能是幂等的，谁先谁后都不影响对方能不能用。
     CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-    DWT->CYCCNT = 0;
     DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 
     // 3. 配置 TIM1 为复位模式 (外部触发复位 CNT)
@@ -79,6 +81,7 @@ void HCSR04_Start(void)
 
     // 11us 延时开始
     uint32_t t0 = DWT->CYCCNT;
+    uint32_t guard = TRIG_PULSE_TICKS * 4U + 64U;
 
     // 2. 启动输入捕获 (双通道)
     // 清除之前的标志位，防止误触发
@@ -91,7 +94,11 @@ void HCSR04_Start(void)
     last_start_tick = HAL_GetTick();
 
     // 11us 延时结束
-    while ((DWT->CYCCNT - t0) < TRIG_PULSE_TICKS);
+    // guard 兜底：万一 CYCCNT 不递增(TRCENA 被清 / DWT 时钟被门控)，也不会把
+    // TRIG 永远拉高卡死在这里。脉冲略长对 HC-SR04 无害(只要求 >=10us)。
+    while ((DWT->CYCCNT - t0) < TRIG_PULSE_TICKS) {
+        if (--guard == 0U) break;
+    }
 
 
     HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_RESET);
@@ -142,7 +149,7 @@ uint32_t HCSR04_Get_Result(void)
             sensor_state = HC_IDLE; 
             
             // 返回 45000 (代表 4500.0mm)，提示 UI 超出量程
-            return 45000; 
+            return HCSR04_OUT_OF_RANGE;
         }
         // 还没超时也没完成，返回 0 提示继续等待
         return 0; 
@@ -154,7 +161,7 @@ uint32_t HCSR04_Get_Result(void)
         sensor_state = HC_IDLE; // 重置状态，准备下一次触发
         
         // 容错：如果硬件捕获的值异常大，也限制在 45000
-        if (last_result_01mm > 45000) return 45000;
+        if (last_result_01mm > HCSR04_OUT_OF_RANGE) return HCSR04_OUT_OF_RANGE;
         
         return last_result_01mm;
     }
@@ -179,13 +186,17 @@ uint32_t HCSR04_Measure_Blocking_HighRes(void)
     
     // 11us 延时
     uint32_t t0 = DWT->CYCCNT;
-    while ((DWT->CYCCNT - t0) < TRIG_PULSE_TICKS);
+    uint32_t guard = TRIG_PULSE_TICKS * 4U + 64U;
+    while ((DWT->CYCCNT - t0) < TRIG_PULSE_TICKS) {
+        if (--guard == 0U) break;   // 同 HCSR04_Start：CYCCNT 停走也不许卡死
+    }
 
     HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_RESET);
 
-    // 2. 等待 Echo 高电平 (超时退出防止死锁)
-    timeout = 1000000; 
-    while (Echo_GPIO_Port->IDR & Echo_Pin) // 这里假设 Echo 是 PA8
+    // 2. 等待 Echo 上升沿 (原实现两个循环都在等低电平，第二个会立刻退出，
+    //    导致 cycles≈0、结果恒为 0)
+    timeout = 1000000;
+    while ((Echo_GPIO_Port->IDR & Echo_Pin) == 0)
     {
         if (timeout-- == 0) return 0;
     }

@@ -25,14 +25,6 @@ void Key_Init(void) {
 }
 
 /**
- * @brief  清空所有未处理的按键按下事件
- */
-void Key_Clear_Event(void) {
-    // 初始化状态
-    Key_Event_Trig = 0;
-}
-
-/**
  * @brief 扫描一行的四个列
  * @param row_idx 行索引 (0-3)
  */
@@ -81,10 +73,10 @@ void Key_Scan_IT(void) {
     }
 
     // 2. 扫描独立按键
-    if (!(BTN_A_GPIO_Port->IDR & BTN_A_Pin)) {
+    if (HAL_GPIO_ReadPin(BTN_A_GPIO_Port, BTN_A_Pin) == GPIO_PIN_RESET) {
         raw_data |= (1 << KEY_ID_BTN_A);
     }
-    if (!(BTN_B_GPIO_Port->IDR & BTN_B_Pin)) {
+    if (HAL_GPIO_ReadPin(BTN_B_GPIO_Port, BTN_B_Pin) == GPIO_PIN_RESET) {
         raw_data |= (1 << KEY_ID_BTN_B);
     }
 

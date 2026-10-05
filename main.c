@@ -286,7 +286,7 @@ void Task_Info(void) {
         OLED_NewFrame();
         
         // 1. 显示时长
-        sprintf(DispBuf, "Time: %u ms", (unsigned)display_duration);
+        sprintf(DispBuf, "Time: %lu ms", (unsigned long)display_duration);
         OLED_PrintString(0, 0, DispBuf, OLED_COLOR_NORMAL);
         
         // 2. 绘制矩阵键盘状态 (4x4 Grid)
@@ -606,6 +606,9 @@ void User_Init(void)
 
     HAL_TIM_Base_Start_IT(&htim10); // 按键心跳
     Key_Init();
+    /* SSD1306 上电稳定等待放在调用点：oled.c 内部不再做阻塞延时，
+       从错误中恢复时屏幕早已供电，不需要再等(见 oled.c OLED_Init) */
+    HAL_Delay(20);
     OLED_Init();
 
     LED1_Set(10); RGB_Set(0,0,100); // 核心外设初始化完成标识
@@ -651,11 +654,7 @@ void User_Loop(void)
 
         CurrentMode++;
         if(CurrentMode >= MODE_MAX) CurrentMode = MODE_INFO;
-        
-        // 标记刷新，清除按键事件
-        ModeNeedRefresh = 1; 
-        
-        // 反馈音效
+        ModeNeedRefresh = 1;
         Buzzer_On(4000, 0.5); HAL_Delay(30); Buzzer_Off();
     }
     
@@ -668,15 +667,6 @@ void User_Loop(void)
         default: CurrentMode = MODE_INFO;
     }
 }
-
-// [演示逻辑] 屏幕刷完后让一个测试 LED 翻转，证明 DMA 跑通了
-/*
-void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c) {
-    if(hi2c->Instance == I2C1) {
-        HAL_GPIO_TogglePin(LED0_GPIO_Port, LED0_Pin);
-    }
-}
-*/
 
 /* USER CODE END 4 */
 

@@ -82,12 +82,11 @@ uint8_t UART6_Get_Packet(char *out_buf);
 /**
  * @brief 通用指令解析器
  * @param input_str 输入的指令字符串
- * @param split_char 指令与数值的分隔符
  * @param out_cmd   输出的指令部分
  * @param out_val   输出的数值部分
  * @return 1=解析成功, 0=格式错误
  */
-uint8_t CMD_Parse(char *input_str, char split_char, char *out_cmd, int *out_val);
+uint8_t CMD_Parse(char *input_str, char *out_cmd, int *out_val);
 
 /**
  * @brief UART 接收完成回调 (空闲中断触发)
